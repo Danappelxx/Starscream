@@ -262,7 +262,7 @@ public class WebSocket : NSObject, StreamDelegate {
             key += "\(Character(uni))"
         }
         let data = key.data(using: String.Encoding.utf8)
-        let baseKey = data?.base64EncodedString(NSData.Base64EncodingOptions(rawValue: 0))
+        let baseKey = data?.base64EncodedString(options: NSData.Base64EncodingOptions(rawValue: 0))
         return baseKey!
     }
     
@@ -281,19 +281,19 @@ public class WebSocket : NSObject, StreamDelegate {
         inStream.delegate = self
         outStream.delegate = self
         if let scheme = url.scheme where ["wss", "https"].contains(scheme) {
-            inStream.setProperty(StreamSocketSecurityLevel.negotiatedSSL as AnyObject, forKey: Stream.PropertyKey.socketSecurityLevelKey.rawValue)
-            outStream.setProperty(StreamSocketSecurityLevel.negotiatedSSL as AnyObject, forKey: Stream.PropertyKey.socketSecurityLevelKey.rawValue)
+            inStream.setProperty(StreamSocketSecurityLevel.negotiatedSSL as AnyObject, forKey: Stream.PropertyKey(rawValue: Stream.PropertyKey.socketSecurityLevelKey.rawValue))
+            outStream.setProperty(StreamSocketSecurityLevel.negotiatedSSL as AnyObject, forKey: Stream.PropertyKey(rawValue: Stream.PropertyKey.socketSecurityLevelKey.rawValue))
         } else {
             certValidated = true //not a https session, so no need to check SSL pinning
         }
         if voipEnabled {
-            inStream.setProperty(StreamNetworkServiceTypeValue.voip as AnyObject, forKey: Stream.PropertyKey.networkServiceType.rawValue)
-            outStream.setProperty(StreamNetworkServiceTypeValue.voip as AnyObject, forKey: Stream.PropertyKey.networkServiceType.rawValue)
+            inStream.setProperty(StreamNetworkServiceTypeValue.voIP.rawValue, forKey: Stream.PropertyKey.networkServiceType)
+            outStream.setProperty(StreamNetworkServiceTypeValue.voIP.rawValue, forKey: Stream.PropertyKey.networkServiceType)
         }
         if selfSignedSSL {
             let settings: [NSObject: NSObject] = [kCFStreamSSLValidatesCertificateChain: NSNumber(value:false), kCFStreamSSLPeerName: kCFNull]
-            inStream.setProperty(settings as AnyObject, forKey: kCFStreamPropertySSLSettings as String)
-            outStream.setProperty(settings as AnyObject, forKey: kCFStreamPropertySSLSettings as String)
+            inStream.setProperty(settings as AnyObject, forKey: Stream.PropertyKey(rawValue: kCFStreamPropertySSLSettings as String))
+            outStream.setProperty(settings as AnyObject, forKey: Stream.PropertyKey(rawValue: kCFStreamPropertySSLSettings as String))
         }
         if let cipherSuites = self.enabledSSLCipherSuites {
             if let sslContextIn = CFReadStreamCopyProperty(inputStream, CFStreamPropertyKey(rawValue: kCFStreamPropertySSLContext)) as! SSLContext?,
@@ -341,9 +341,9 @@ public class WebSocket : NSObject, StreamDelegate {
     //delegate for the stream methods. Processes incoming bytes
     public func stream(_ aStream: Stream, handle eventCode: Stream.Event) {
         if let sec = security where !certValidated && [.hasBytesAvailable, .hasSpaceAvailable].contains(eventCode) {
-            let possibleTrust: AnyObject? = aStream.property(forKey: kCFStreamPropertySSLPeerTrust as String)
+            let possibleTrust: AnyObject? = aStream.property(forKey: Stream.PropertyKey(rawValue: kCFStreamPropertySSLPeerTrust as String))
             if let trust: AnyObject = possibleTrust {
-                let domain: AnyObject? = aStream.property(forKey: kCFStreamSSLPeerName as String)
+                let domain: AnyObject? = aStream.property(forKey: Stream.PropertyKey(rawValue: kCFStreamSSLPeerName as String))
                 if sec.isValid(trust as! SecTrust, domain: domain as! String?) {
                     certValidated = true
                 } else {
